@@ -1,5 +1,7 @@
 # CLIProxyAPI Linux Installers
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 This repository provides two Linux installers for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI):
 
 - `cliproxyapi-installer` for user-level installs with `systemctl --user`
