@@ -1,13 +1,16 @@
-# CLIProxyAPI Linux Installer
+# CLIProxyAPI Linux Installers
 
-A comprehensive Linux installation script for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) that automates installation, upgrades, and management of the CLIProxyAPI service.
+This repository provides two Linux installers for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI):
+
+- `cliproxyapi-installer` for user-level installs with `systemctl --user`
+- `cliproxyapi-systemd-installer` for system-level installs managed by root with `systemctl`
 
 ## Features
 
 - 🚀 **Automatic Installation** - Detects your Linux architecture and downloads the latest version
 - 🔄 **Smart Upgrades** - Preserves your configuration and automatically manages systemd service during upgrades
 - 🔑 **API Key Management** - Automatically generates secure API keys
-- 🛡️ **Systemd Service** - Creates and manages systemd service files with proper lifecycle management
+- 🛡️ **Two Service Modes** - Supports both user-level and system-level systemd installation flows
 - 📊 **Status Monitoring** - Check installation status and configuration
 - 🧹 **Cleanup** - Automatically removes old versions (keeps latest 2)
 - 📚 **Documentation Management** - Built-in documentation tools
@@ -15,10 +18,17 @@ A comprehensive Linux installation script for [CLIProxyAPI](https://github.com/r
 
 ## Quick Start
 
-### Install CLIProxyAPI
+### Choose an Installer
+
+| Mode | Script | Install Directory | systemd Unit | Service User |
+|------|--------|-------------------|--------------|--------------|
+| User-level | `cliproxyapi-installer` | `~/cliproxyapi` | `~/.config/systemd/user/cliproxyapi.service` | Your login user |
+| System-level | `cliproxyapi-systemd-installer` | `/opt/cliproxyapi` | `/etc/systemd/system/cliproxyapi.service` | `root` |
+
+### User-Level Install
 
 ```bash
-# Download and run the installer
+# Download and run the user-level installer
 curl -fsSL https://raw.githubusercontent.com/brokechubb/cliproxyapi-installer/refs/heads/master/cliproxyapi-installer | bash
 
 # Or clone and run manually
@@ -27,51 +37,82 @@ cd cliproxyapi-installer
 ./cliproxyapi-installer
 ```
 
-### After Installation
+### System-Level Install
 
-1. **Configure API keys** (if not automatically generated):
+```bash
+# Download and run the system-level installer
+curl -fsSL https://raw.githubusercontent.com/brokechubb/cliproxyapi-installer/refs/heads/master/cliproxyapi-systemd-installer | sudo bash
+
+# Or clone and run manually
+git clone https://github.com/brokechubb/cliproxyapi-installer.git
+cd cliproxyapi-installer
+sudo bash ./cliproxyapi-systemd-installer
+```
+
+### After User-Level Installation
+
+1. **Configure API keys**:
    ```bash
    cd ~/cliproxyapi
    nano config.yaml
    ```
 
-2. **Set up authentication** (choose one or more):
+2. **Set up authentication**:
    ```bash
-   ./cli-proxy-api --login           # For Gemini
-   ./cli-proxy-api --codex-login     # For OpenAI
-   ./cli-proxy-api --claude-login    # For Claude
-   ./cli-proxy-api --qwen-login      # For Qwen
-   ./cli-proxy-api --iflow-login     # For iFlow
+   ./cli-proxy-api --login
+   ./cli-proxy-api --codex-login
+   ./cli-proxy-api --claude-login
+   ./cli-proxy-api --qwen-login
+   ./cli-proxy-api --iflow-login
    ```
 
-3. **Start the service**:
-     ```bash
-     # Direct execution
-     ./cli-proxy-api
+3. **Start the user service**:
+   ```bash
+   systemctl --user enable cliproxyapi.service
+   systemctl --user start cliproxyapi.service
+   systemctl --user status cliproxyapi.service
+   ```
 
-     # Or as a systemd service (recommended)
-     systemctl --user enable cliproxyapi.service
-     systemctl --user start cliproxyapi.service
-     systemctl --user status cliproxyapi.service
-     ```
+### After System-Level Installation
 
-4. **Enable autostart on boot** (recommended):
-     ```bash
-     # Enable the service to start automatically on user login
-     systemctl --user enable cliproxyapi.service
-     
-     # Verify it's enabled
-     systemctl --user is-enabled cliproxyapi.service
-     ```
+1. **Configure API keys**:
+   ```bash
+   cd /opt/cliproxyapi
+   sudo nano config.yaml
+   ```
+
+2. **Set up authentication as root**:
+   ```bash
+   sudo ./cli-proxy-api --login
+   sudo ./cli-proxy-api --codex-login
+   sudo ./cli-proxy-api --claude-login
+   sudo ./cli-proxy-api --qwen-login
+   sudo ./cli-proxy-api --iflow-login
+   ```
+
+3. **Enable and start the system service**:
+   ```bash
+   sudo systemctl enable cliproxyapi.service
+   sudo systemctl start cliproxyapi.service
+   sudo systemctl status cliproxyapi.service
+   ```
+
+4. **Follow logs**:
+   ```bash
+   sudo journalctl -u cliproxyapi.service -f
+   ```
+
+> **Important**: The system-level installer runs CLIProxyAPI as `root` with `HOME=/root`. Existing auth or token files under a regular user's home directory are not migrated automatically.
 
 > **💡 Pro Tip**: The installer automatically manages the systemd service during upgrades. If the service is running when you upgrade, it will be gracefully stopped, updated, and restarted automatically.
 
 ## Usage
 
-The installer script supports multiple commands:
+The repository ships two installer scripts:
 
 ```bash
 ./cliproxyapi-installer [COMMAND]
+sudo bash ./cliproxyapi-systemd-installer [COMMAND]
 ```
 
 ### Commands
@@ -90,47 +131,69 @@ The installer script supports multiple commands:
 ### Examples
 
 ```bash
-# Install or upgrade to the latest version
+# Install or upgrade the user-level service
 ./cliproxyapi-installer
+
+# Install or upgrade the system-level service
+sudo bash ./cliproxyapi-systemd-installer
 
 # Check current installation status
 ./cliproxyapi-installer status
+sudo bash ./cliproxyapi-systemd-installer status
 
 # Verify your configuration
 ./cliproxyapi-installer check-config
+sudo bash ./cliproxyapi-systemd-installer check-config
 
 # Generate a new API key
 ./cliproxyapi-installer generate-key
+./cliproxyapi-systemd-installer generate-key
 
 # Show authentication setup info
 ./cliproxyapi-installer auth
+sudo bash ./cliproxyapi-systemd-installer auth
 
 # Uninstall completely
 ./cliproxyapi-installer uninstall
+sudo bash ./cliproxyapi-systemd-installer uninstall
 ```
 
 ## Configuration
 
-### Installation Directory
-CLIProxyAPI is installed to `~/cliproxyapi/` with the following structure:
-```
+### Installation Directories
+
+User-level install:
+```text
 ~/cliproxyapi/
-├── cli-proxy-api          # Main executable
-├── config.yaml            # Configuration file
-├── cliproxyapi.service    # Systemd service file
-├── version.txt            # Current version info
-├── x.x.x/                 # Version-specific directory
-└── config_backup/         # Configuration backups
+├── cli-proxy-api
+├── config.yaml
+├── cliproxyapi.service
+├── version.txt
+├── x.x.x/
+└── config_backup/
 ```
+
+System-level install:
+```text
+/opt/cliproxyapi/
+├── cli-proxy-api
+├── config.yaml
+├── cliproxyapi.service
+├── version.txt
+├── x.x.x/
+└── config_backup/
+```
+
+The active system-level unit is written to `/etc/systemd/system/cliproxyapi.service`.
 
 ### API Keys
 
-The installer automatically generates secure API keys in OpenAI format (`sk-...`). These keys are used for authenticating requests to your proxy server, **not** for provider authentication.
+Both installers automatically generate secure API keys in OpenAI format (`sk-...`). These keys are used for authenticating requests to your proxy server, **not** for provider authentication.
 
 To view or modify your API keys:
 ```bash
-cd ~/cliproxyapi
-nano config.yaml
+cd ~/cliproxyapi && nano config.yaml
+sudo sh -c 'cd /opt/cliproxyapi && nano config.yaml'
 ```
 
 ### Authentication Providers
@@ -170,42 +233,49 @@ sudo dnf install curl wget tar
 
 ## Systemd Service
 
-The installer creates and manages a systemd service file for easy lifecycle management:
+Both installers create and manage a `cliproxyapi.service` unit, but they target different systemd scopes.
+
+### User-Level Service Commands
+
+```bash
+systemctl --user enable cliproxyapi.service
+systemctl --user start cliproxyapi.service
+systemctl --user status cliproxyapi.service
+journalctl --user -u cliproxyapi.service -f
+```
+
+### System-Level Service Commands
+
+```bash
+sudo systemctl enable cliproxyapi.service
+sudo systemctl start cliproxyapi.service
+sudo systemctl status cliproxyapi.service
+sudo journalctl -u cliproxyapi.service -f
+```
+
+### System-Level Unit Details
+
+The `cliproxyapi-systemd-installer` writes the active unit to `/etc/systemd/system/cliproxyapi.service` with these characteristics:
+
+- `WorkingDirectory=/opt/cliproxyapi`
+- `ExecStart=/opt/cliproxyapi/cli-proxy-api --config /opt/cliproxyapi/config.yaml`
+- `User=root`
+- `Group=root`
+- `Environment=HOME=/root`
+- `WantedBy=multi-user.target`
 
 ### ✨ Smart Service Management
 
-The installer provides intelligent service handling during upgrades:
+Both installers provide intelligent service handling during upgrades:
 
 - **Automatic Detection**: Detects if the service is running before upgrades
 - **Graceful Shutdown**: Safely stops the service before applying updates
 - **Auto-Restart**: Restarts the service after successful upgrades
 - **State Preservation**: Maintains the service's previous running state
 
-### Basic Service Management
-
-```bash
-# Enable the service (starts on user login)
-systemctl --user enable cliproxyapi.service
-
-# Start the service
-systemctl --user start cliproxyapi.service
-
-# Check service status
-systemctl --user status cliproxyapi.service
-
-# View service logs
-journalctl --user -u cliproxyapi.service -f
-
-# Stop the service
-systemctl --user stop cliproxyapi.service
-
-# Restart the service
-systemctl --user restart cliproxyapi.service
-```
-
 ### Service Status During Upgrades
 
-When you run `./cliproxyapi-installer upgrade`, the installer will:
+When you run either installer in upgrade mode, it will:
 
 1. **Check** if the service is currently running
 2. **Stop** the service gracefully if it's active
@@ -225,42 +295,44 @@ You'll see output like:
 
 ### Autostart Configuration
 
-**To enable CLIProxyAPI to start automatically on system boot:**
+User-level autostart:
 
 ```bash
-# Enable the service for automatic startup on user login
 systemctl --user enable cliproxyapi.service
-
-# Verify the service is enabled
 systemctl --user is-enabled cliproxyapi.service
-
-# Check if the service will start on boot
-systemctl --user is-active cliproxyapi.service
 ```
 
-**To disable autostart:**
+System-level autostart:
+```bash
+sudo systemctl enable cliproxyapi.service
+sudo systemctl is-enabled cliproxyapi.service
+```
+
+Disable autostart:
 ```bash
 systemctl --user disable cliproxyapi.service
+sudo systemctl disable cliproxyapi.service
 ```
 
 **Important Notes:**
-- The `--user` flag means the service runs as your user and starts when you log in
-- For system-wide startup (requires root), you would need to manually install the service file to `/etc/systemd/system/`
-- User services require lingering to be enabled for startup without login: `loginctl enable-linger $USER`
+- User-level services start in the logged-in user's systemd scope and typically need lingering for background startup without login: `loginctl enable-linger $USER`
+- System-level services are managed through `/etc/systemd/system/cliproxyapi.service` and start through the normal system boot flow
+- System-level logs are read with `journalctl -u cliproxyapi.service`
+- System-level authentication state lives under `/root` unless CLIProxyAPI is configured otherwise
 
 **If the service is not working:**
 ```bash
-# Reload systemd daemon
+# User-level troubleshooting
 systemctl --user daemon-reload
-
-# Check service status for errors
 systemctl --user status cliproxyapi.service
-
-# View detailed logs
 journalctl --user -u cliproxyapi.service -n 50
-
-# Check if service file exists
 ls -la ~/.config/systemd/user/cliproxyapi.service
+
+# System-level troubleshooting
+sudo systemctl daemon-reload
+sudo systemctl status cliproxyapi.service
+sudo journalctl -u cliproxyapi.service -n 50
+ls -la /etc/systemd/system/cliproxyapi.service
 ```
 
 ## Troubleshooting
@@ -270,6 +342,7 @@ ls -la ~/.config/systemd/user/cliproxyapi.service
 1. **Permission Denied**
     ```bash
     chmod +x cliproxyapi-installer
+    chmod +x cliproxyapi-systemd-installer
     ```
 
 2. **Missing Dependencies**
@@ -289,11 +362,11 @@ ls -la ~/.config/systemd/user/cliproxyapi.service
 
 4. **Service Won't Start**
     ```bash
-    # Check service logs
+    # User-level logs
     journalctl --user -u cliproxyapi.service -n 50
-    
-    # Check configuration
-    ./cliproxyapi-installer check-config
+
+    # System-level logs
+    sudo journalctl -u cliproxyapi.service -n 50
     ```
 
 5. **Port Already in Use**
@@ -306,45 +379,52 @@ ls -la ~/.config/systemd/user/cliproxyapi.service
     
     # Then restart the service
     systemctl --user restart cliproxyapi.service
+    sudo systemctl restart cliproxyapi.service
     ```
 
 6. **Systemd Service Issues**
     ```bash
-    # Reload systemd daemon
+    # User-level
     systemctl --user daemon-reload
-    
-    # Check if service file exists
     ls -la ~/.config/systemd/user/cliproxyapi.service
-    
-    # Reset service (disable and re-enable)
     systemctl --user disable cliproxyapi.service
     systemctl --user enable cliproxyapi.service
     systemctl --user start cliproxyapi.service
+
+    # System-level
+    sudo systemctl daemon-reload
+    ls -la /etc/systemd/system/cliproxyapi.service
+    sudo systemctl disable cliproxyapi.service
+    sudo systemctl enable cliproxyapi.service
+    sudo systemctl start cliproxyapi.service
     ```
 
 7. **Upgrade Service Issues**
     ```bash
     # If service doesn't restart after upgrade
     systemctl --user status cliproxyapi.service
+    sudo systemctl status cliproxyapi.service
     
     # Check recent service logs
     journalctl --user -u cliproxyapi.service -n 20
+    sudo journalctl -u cliproxyapi.service -n 20
     
     # Manually restart if needed
     systemctl --user restart cliproxyapi.service
+    sudo systemctl restart cliproxyapi.service
     ```
 
 8. **Configuration Protection Issues**
     ```bash
-    # If your config was accidentally overwritten (should never happen)
-    # Check backup directory
+    # User-level backups
     ls -la ~/cliproxyapi/config_backup/
-    
-    # Restore from latest backup
     cp ~/cliproxyapi/config_backup/config_YYYYMMDD_HHMMSS.yaml ~/cliproxyapi/config.yaml
-    
-    # Restart service after restoring
     systemctl --user restart cliproxyapi.service
+
+    # System-level backups
+    sudo ls -la /opt/cliproxyapi/config_backup/
+    sudo cp /opt/cliproxyapi/config_backup/config_YYYYMMDD_HHMMSS.yaml /opt/cliproxyapi/config.yaml
+    sudo systemctl restart cliproxyapi.service
     ```
 
 ### Getting Help
@@ -352,21 +432,25 @@ ls -la ~/.config/systemd/user/cliproxyapi.service
 ```bash
 # Show all available commands
 ./cliproxyapi-installer --help
+./cliproxyapi-systemd-installer --help
 
 # Check installation status
 ./cliproxyapi-installer status
+sudo bash ./cliproxyapi-systemd-installer status
 
 # Verify configuration
 ./cliproxyapi-installer check-config
+sudo bash ./cliproxyapi-systemd-installer check-config
 ```
 
 ## Security Considerations
 
 - API keys are automatically generated using cryptographically secure random strings
-- Configuration files are stored in your home directory with standard permissions
+- Configuration files are stored under the selected installation directory
 - The systemd service runs with appropriate security restrictions
 - Backups of configuration are created automatically during upgrades
 - **User configurations are never overwritten** - your modifications are protected during upgrades
+- The system-level installer runs the service as `root`, so review file ownership and auth/token storage expectations before switching from a user-level install
 
 ## Updates and Upgrades
 
@@ -375,9 +459,11 @@ The installer automatically checks for newer versions:
 ```bash
 # Check for updates and upgrade if available
 ./cliproxyapi-installer upgrade
+sudo bash ./cliproxyapi-systemd-installer upgrade
 
 # Or simply run (upgrade is the default action)
 ./cliproxyapi-installer
+sudo bash ./cliproxyapi-systemd-installer
 ```
 
 ### Smart Upgrade Process
@@ -416,7 +502,7 @@ This installer script is released under the same license as CLIProxyAPI.
 
 - **CLIProxyAPI Documentation**: https://github.com/router-for-me/CLIProxyAPI
 - **Installer Issues**: https://github.com/brokechubb/cliproxyapi-installer/issues
-- **General Help**: Run `./cliproxyapi-installer --help`
+- **General Help**: Run `./cliproxyapi-installer --help` or `./cliproxyapi-systemd-installer --help`
 
 ## Changelog
 
@@ -438,6 +524,7 @@ This installer script is released under the same license as CLIProxyAPI.
 - **Fixed Service File**: Resolved systemd service configuration issues
 - **Better Error Handling**: Improved service startup and restart reliability
 - **Simplified Security**: Removed problematic restrictions while maintaining security
+- **System-Level Installer**: Added `cliproxyapi-systemd-installer` for `/opt/cliproxyapi` and `/etc/systemd/system/cliproxyapi.service`
 
 ---
 
